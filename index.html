@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time linkers: тест</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF4F1; --card:#FFFFFF; --ink:#12343B; --muted:#56727A; --teal:#0F766E; --teal-soft:#D3ECE7;
+  --sun:#F2A900; --sun-soft:#FFF1C7; --bad:#C93A3A; --bad-soft:#FBE2E2; --line:#C9DDD8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1F23; --card:#162D33; --ink:#E4F1EE; --muted:#9BB6BC; --teal:#3FC1B0; --teal-soft:#1D4A47;
+    --sun:#FFC933; --sun-soft:#4A3D12; --bad:#FF8080; --bad-soft:#4A2226; --line:#28474E;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1F23; --card:#162D33; --ink:#E4F1EE; --muted:#9BB6BC; --teal:#3FC1B0; --teal-soft:#1D4A47;
+  --sun:#FFC933; --sun-soft:#4A3D12; --bad:#FF8080; --bad-soft:#4A2226; --line:#28474E;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 18px/1.55 "Nunito",system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:640px;margin:0 auto;padding:28px 18px 48px}
+.track{display:flex;gap:5px;margin:0 0 22px}
+.track i{flex:1;height:8px;border-radius:4px;background:var(--line)}
+.track i.ok{background:var(--teal)} .track i.bad{background:var(--bad)} .track i.now{background:var(--sun)}
+.card{background:var(--card);border-radius:18px;padding:26px 22px;border:2px solid var(--line)}
+h1{font-weight:800;font-size:2.1rem;line-height:1.15;margin:0 0 10px}
+.muted{color:var(--muted)}
+.count{color:var(--muted);font-size:.9rem;margin:0 0 4px}
+.task{font-weight:800;font-size:1.05rem;margin:0 0 16px;color:var(--teal)}
+.sentence{font-size:1.25rem;line-height:1.7;margin:0 0 20px}
+.gap{display:inline-block;min-width:90px;border-bottom:3px solid var(--sun);text-align:center;color:var(--teal);font-weight:800}
+.words{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.opts{display:grid;gap:10px;margin:0 0 20px}
+button{font:inherit;color:inherit;cursor:pointer}
+.w,.opt,.tile{background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-weight:600}
+.opt{text-align:left;padding:12px 16px}
+.w[aria-pressed="true"],.opt[aria-pressed="true"]{border-color:var(--sun);background:var(--sun-soft)}
+.w.right,.opt.right{border-color:var(--teal);background:var(--teal-soft)}
+.w.wrong,.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.answer{min-height:58px;border:2px dashed var(--line);border-radius:12px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.answer:empty::before{content:"Нажимай на слова ниже";color:var(--muted);padding:6px}
+.tile{background:var(--card)}
+.answer .tile{background:var(--sun-soft);border-color:var(--sun)}
+input[type=text]{font:inherit;font-size:1.1rem;width:100%;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);margin:0 0 20px}
+.fb{border-radius:12px;padding:12px 16px;margin:0 0 18px;font-weight:600}
+.fb.good{background:var(--teal-soft)} .fb.no{background:var(--bad-soft)}
+.fb b{display:block;font-size:1.1rem}
+.main-btn{background:var(--teal);color:#fff;border:none;border-radius:12px;padding:13px 26px;font-weight:800;font-size:1.05rem;width:100%}
+.main-btn:disabled{opacity:.4;cursor:default}
+.sec-btn{background:transparent;color:var(--teal);border:2px solid var(--teal);border-radius:12px;padding:11px 22px;font-weight:800;width:100%;margin-top:10px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.score{font-size:4.5rem;font-weight:800;line-height:1;margin:6px 0 4px;color:var(--teal)}
+.mark{display:inline-block;background:var(--sun);color:#12343B;border-radius:10px;padding:2px 12px;font-weight:800;margin:0 0 20px}
+.mist{border-top:2px solid var(--line);padding:12px 0}
+.mist p{margin:0}
+.mist .fix{color:var(--teal);font-weight:800}
+.copied{color:var(--teal);font-weight:700;text-align:center;margin:8px 0 0;min-height:1.5em}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const Q = [
+ {type:"error", words:["We","waited","at","the","station","while","the","train","arrived."], wrong:5, fix:"until",
+  why:"Ждали, пока поезд не приехал: ожидание закончилось, значит until."},
+ {type:"choice", text:["", " I got to school, the lesson had already finished."], opts:["While","By the time","During"], a:1,
+  why:"Урок закончился раньше, чем я пришёл (had already finished): by the time."},
+ {type:"first", text:"By the time we reached the stadium, the match had already started.", opts:["Мы пришли на стадион","Матч начался"], a:1,
+  why:"By the time + had already: сначала начался матч, потом мы пришли."},
+ {type:"type", text:["Nobody talked ", " the exam."], acc:["during"],
+  why:"«the exam» это существительное без глагола: during."},
+ {type:"build", tiles:["were","rain","It","camping","to","while","started","we"],
+  acc:["it started to rain while we were camping","while we were camping it started to rain"],
+  show:"It started to rain while we were camping.",
+  why:"Длинное действие (were camping) идёт после while."},
+ {type:"error", words:["I","fell","asleep","while","the","movie."], wrong:3, fix:"during",
+  why:"«the movie» это существительное без глагола: during."},
+ {type:"first", text:"Before the concert started, we bought some drinks.", opts:["Концерт начался","Мы купили напитки"], a:1,
+  why:"Before: сначала купили напитки, потом начался концерт."},
+ {type:"type", text:["Wash your hands ", " you eat."], acc:["before"],
+  why:"Сначала моем руки, потом едим: before."},
+ {type:"choice", text:["The phone rang ", " I was having a shower."], opts:["during","while","until"], a:1,
+  why:"«I was having» это длинное действие в процессе: while."},
+ {type:"error", words:["During","I","was","cooking,","the","phone","rang."], wrong:0, fix:"While",
+  why:"После пропуска идёт «I was cooking» (подлежащее + глагол): while."},
+ {type:"type", text:["", " I was walking my dog, I saw my teacher."], acc:["while","when"],
+  why:"«I was walking» это длинное действие: while (можно when)."},
+ {type:"build", tiles:["dark","We","it","until","played","got"],
+  acc:["we played until it got dark"], show:"We played until it got dark.",
+  why:"Играли до темноты, потом перестали: until."},
+ {type:"first", text:"After the storm stopped, we went outside.", opts:["Мы вышли на улицу","Гроза закончилась"], a:1,
+  why:"After: сначала закончилась гроза, потом мы вышли."},
+ {type:"type", text:["I'll wait here ", " you come back."], acc:["until","till"],
+  why:"Жду, пока ты не вернёшься: until."},
+ {type:"choice", text:["", " the teacher came in, everybody stopped talking."], opts:["When","During","Until"], a:0,
+  why:"Учитель вошёл, и сразу все замолчали, одно за другим: when."}
+];
+const TASK = {error:"Нажми на слово с ошибкой", choice:"Выбери правильный вариант", first:"Что случилось раньше?",
+  type:"Впиши пропущенное слово", build:"Собери предложение из слов"};
+
+let name="", i=0, log=[], sel=null, built=[], checked=false;
+const app=document.getElementById("app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>s.toLowerCase().replace(/[.,!?]/g,"").replace(/\s+/g," ").trim();
+
+function start(){
+  app.innerHTML=`<div class="card">
+    <h1>Time linkers</h1>
+    <p class="muted">when, while, during, before, after, until, by the time</p>
+    <p>${Q.length} заданий разного типа. После каждого ответа сразу увидишь, правильно или нет.</p>
+    <label for="nm"><b>Твоё имя</b></label>
+    <input type="text" id="nm" autocomplete="off" placeholder="Имя и фамилия">
+    <button class="main-btn" id="go" disabled>Начать тест</button></div>`;
+  const nm=document.getElementById("nm"), go=document.getElementById("go");
+  nm.oninput=()=>go.disabled=!nm.value.trim();
+  nm.onkeydown=e=>{if(e.key==="Enter"&&nm.value.trim())go.click()};
+  go.onclick=()=>{name=nm.value.trim();i=0;log=[];show()};
+  nm.focus();
+}
+
+function track(){
+  return `<div class="track" aria-hidden="true">${Q.map((_,k)=>`<i class="${k<log.length?(log[k].ok?"ok":"bad"):k===i?"now":""}"></i>`).join("")}</div>`;
+}
+
+function show(){
+  const q=Q[i]; sel=null; built=[]; checked=false;
+  let body="";
+  if(q.type==="error"){
+    body=`<div class="words">${q.words.map((w,k)=>`<button class="w" data-k="${k}" aria-pressed="false">${esc(w)}</button>`).join("")}</div>`;
+  } else if(q.type==="choice"){
+    body=`<p class="sentence">${esc(q.text[0])}<span class="gap">?</span>${esc(q.text[1])}</p>
+      <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`;
+  } else if(q.type==="first"){
+    body=`<p class="sentence">${esc(q.text)}</p>
+      <div class="opts">${q.opts.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="false">${esc(o)}</button>`).join("")}</div>`;
+  } else if(q.type==="type"){
+    body=`<p class="sentence">${esc(q.text[0])}<span class="gap">?</span>${esc(q.text[1])}</p>
+      <input type="text" id="inp" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Напиши слово">`;
+  } else {
+    body=`<div class="answer" id="ans"></div><div class="words" id="pool"></div>`;
+  }
+  app.innerHTML=`${track()}<div class="card">
+    <p class="count">Задание ${i+1} из ${Q.length}</p>
+    <p class="task">${TASK[q.type]}</p>${body}
+    <div id="fb"></div>
+    <button class="main-btn" id="act" disabled>Проверить</button></div>`;
+  const act=document.getElementById("act");
+  const ready=()=>{ if(!checked) act.disabled=!answered(); };
+
+  app.querySelectorAll(".w,.opt").forEach(b=>b.onclick=()=>{
+    if(checked)return;
+    app.querySelectorAll(".w,.opt").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed","true"); sel=+b.dataset.k; ready();
+  });
+  const inp=document.getElementById("inp");
+  if(inp){ inp.oninput=ready; inp.onkeydown=e=>{if(e.key==="Enter"&&!act.disabled)act.click()}; inp.focus(); }
+  if(q.type==="build") drawBuild(ready);
+
+  act.onclick=()=>{
+    if(!checked){ grade(); checked=true; act.disabled=false;
+      act.textContent = i<Q.length-1 ? "Дальше" : "Посмотреть результат";
+      document.querySelector(".track").outerHTML=track(); }
+    else { i++; i<Q.length ? show() : finish(); }
+  };
+}
+
+function drawBuild(ready){
+  const q=Q[i], ans=document.getElementById("ans"), pool=document.getElementById("pool");
+  ans.innerHTML=built.map((k,p)=>`<button class="tile" data-p="${p}">${esc(q.tiles[k])}</button>`).join("");
+  pool.innerHTML=q.tiles.map((t,k)=>built.includes(k)?"":`<button class="tile" data-k="${k}">${esc(t)}</button>`).join("");
+  if(checked){ app.querySelectorAll(".tile").forEach(t=>t.disabled=true); return; }
+  pool.querySelectorAll(".tile").forEach(t=>t.onclick=()=>{built.push(+t.dataset.k);drawBuild(ready);ready()});
+  ans.querySelectorAll(".tile").forEach(t=>t.onclick=()=>{built.splice(+t.dataset.p,1);drawBuild(ready);ready()});
+}
+
+function answered(){
+  const q=Q[i];
+  if(q.type==="type") return !!document.getElementById("inp").value.trim();
+  if(q.type==="build") return built.length===q.tiles.length;
+  return sel!==null;
+}
+
+function grade(){
+  const q=Q[i]; let ok, given, correct, prompt;
+  if(q.type==="error"){
+    ok=sel===q.wrong; given=q.words[sel]; correct=`${q.words[q.wrong]} → ${q.fix}`; prompt=q.words.join(" ");
+    const btns=app.querySelectorAll(".w"); btns[q.wrong].classList.add("right"); if(!ok) btns[sel].classList.add("wrong");
+  } else if(q.type==="choice"||q.type==="first"){
+    ok=sel===q.a; given=q.opts[sel]; correct=q.opts[q.a];
+    prompt=q.type==="choice"?q.text[0]+"___"+q.text[1]:q.text;
+    const btns=app.querySelectorAll(".opt"); btns[q.a].classList.add("right"); if(!ok) btns[sel].classList.add("wrong");
+  } else if(q.type==="type"){
+    const inp=document.getElementById("inp"); given=inp.value.trim(); inp.disabled=true;
+    ok=q.acc.includes(norm(given)); correct=q.acc.join(" / "); prompt=q.text[0]+"___"+q.text[1];
+  } else {
+    given=built.map(k=>q.tiles[k]).join(" "); ok=q.acc.includes(norm(given)); correct=q.show; prompt="Собери: "+q.show.split(" ").length+" слов";
+    drawBuild(()=>{});
+  }
+  app.querySelectorAll(".w,.opt").forEach(b=>b.disabled=true);
+  log.push({ok,given,correct,why:q.why,prompt});
+  document.getElementById("fb").innerHTML = ok
+    ? `<div class="fb good"><b>Верно!</b>${esc(q.why)}</div>`
+    : `<div class="fb no"><b>Правильно: ${esc(correct)}</b>${esc(q.why)}</div>`;
+}
+
+function finish(){
+  const right=log.filter(l=>l.ok).length, total=Q.length, pct=right/total;
+  const mark=pct>=0.9?5:pct>=0.7?4:pct>=0.5?3:2;
+  const bad=log.map((l,k)=>({...l,n:k+1})).filter(l=>!l.ok);
+  const report=`Тест: Time linkers\nУченик: ${name}\nРезультат: ${right} из ${total} (оценка ${mark})`+
+    (bad.length?`\nОшибки:\n`+bad.map(l=>`${l.n}. ${l.prompt}\n   ответ: ${l.given} | правильно: ${l.correct}`).join("\n"):"\nОшибок нет!");
+  app.innerHTML=`${track()}<div class="card">
+    <p class="muted">${esc(name)}, твой результат</p>
+    <div class="score">${right}/${total}</div>
+    <span class="mark">Оценка ${mark}</span>
+    ${bad.length?`<p><b>Разбор ошибок</b></p>`+bad.map(l=>`<div class="mist"><p class="muted">Задание ${l.n}: ${esc(l.prompt)}</p>
+      <p>Твой ответ: ${esc(l.given)}</p><p class="fix">Правильно: ${esc(l.correct)}</p><p class="muted">${esc(l.why)}</p></div>`).join("")
+      :`<p>Ни одной ошибки. Отлично!</p>`}
+    <button class="main-btn" id="copy" style="margin-top:14px">Скопировать результат для учителя</button>
+    <p class="copied" id="cp" role="status"></p>
+    <button class="sec-btn" id="again">Пройти ещё раз</button></div>`;
+  document.getElementById("copy").onclick=async()=>{
+    const cp=document.getElementById("cp");
+    try{ await navigator.clipboard.writeText(report); cp.textContent="Скопировано. Отправь учителю в сообщении."; }
+    catch(e){ const t=document.createElement("textarea"); t.value=report; document.body.appendChild(t); t.select();
+      try{document.execCommand("copy");cp.textContent="Скопировано. Отправь учителю в сообщении.";}
+      catch(_){cp.textContent="Не получилось скопировать. Сделай скриншот этой страницы.";}
+      t.remove(); }
+  };
+  document.getElementById("again").onclick=start;
+  window.scrollTo(0,0);
+}
+start();
+</script>
+</body>
+</html>
